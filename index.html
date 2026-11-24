@@ -1,0 +1,1843 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AEGIS-SOC // NOC & Cyber Defense Command Center</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        obsidian: '#090d16',
+                        panel: '#0f1624',
+                        panelHover: '#151e30',
+                        borderDim: '#1e293b',
+                        cyberCyan: '#06b6d4',
+                        cyberEmerald: '#10b981',
+                        cyberAmber: '#f59e0b',
+                        cyberCrimson: '#ef4444',
+                    },
+                    animation: {
+                        'pulse-fast': 'pulse 1.2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'scanline': 'scanline 8s linear infinite',
+                    },
+                    keyframes: {
+                        scanline: {
+                            '0%': { transform: 'translateY(-100%)' },
+                            '100%': { transform: 'translateY(100%)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #090d16;
+            color: #e2e8f0;
+            overflow-x: hidden;
+        }
+
+        /* Custom Scrollbar untuk tampilan Cyber-Ops */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #090d16;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+
+        /* Subtle background grid pattern */
+        .cyber-grid-bg {
+            background-image: 
+                linear-gradient(to right, rgba(30, 41, 59, 0.25) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(30, 41, 59, 0.25) 1px, transparent 1px);
+            background-size: 32px 32px;
+        }
+
+        /* Glow effects */
+        .glow-cyan { box-shadow: 0 0 20px rgba(6, 182, 212, 0.15); }
+        .glow-crimson { box-shadow: 0 0 24px rgba(239, 68, 68, 0.28); }
+        .glow-emerald { box-shadow: 0 0 18px rgba(16, 185, 129, 0.15); }
+        .glow-amber { box-shadow: 0 0 18px rgba(245, 158, 11, 0.2); }
+
+        @keyframes flashRow {
+            0% { background-color: rgba(239, 68, 68, 0.25); }
+            100% { background-color: transparent; }
+        }
+        .new-log-flash {
+            animation: flashRow 1.5s ease-out;
+        }
+    </style>
+</head>
+<body class="cyber-grid-bg min-h-screen flex flex-col font-sans antialiased selection:bg-cyan-500/30 selection:text-cyan-200">
+
+    <!-- Toast Notification Container (Pengganti alert()) -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2.5 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+    <!-- =====================================================================
+         1. HEADER & STATUS GLOBAL
+    ====================================================================== -->
+    <header class="sticky top-0 z-30 bg-[#090d16]/90 backdrop-blur-md border-b border-slate-800/90 px-4 lg:px-6 py-3">
+        <div class="max-w-[1600px] mx-auto flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+            
+            <!-- Brand & Global System Health Status -->
+            <div class="flex flex-wrap items-center justify-between xl:justify-start gap-3 sm:gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shadow-lg shadow-cyan-500/10">
+                        <i class="fa-solid fa-shield-halved text-lg"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-base sm:text-lg font-extrabold tracking-tight text-white">AEGIS<span class="text-cyan-400">-SOC</span></h1>
+                            <span class="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">v4.8 CORE</span>
+                        </div>
+                        <p class="text-xs text-slate-400 hidden sm:block">Pusat Komando NOC, Uptime Server & Deteksi Anomali Siber</p>
+                    </div>
+                </div>
+
+                <!-- Indikator Status Global -->
+                <div id="global-status-badge" class="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 transition-all duration-300">
+                    <span class="relative flex h-2.5 w-2.5">
+                        <span id="global-status-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span id="global-status-dot" class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    </span>
+                    <div class="flex flex-col">
+                        <span id="global-status-text" class="text-xs font-bold tracking-wide uppercase">OPERATIONAL // NORMAL</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls: Cluster Filter, Real-time Clock, Live Stream Toggle, Simulate Attack -->
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                
+                <!-- Filter Cluster / Environment -->
+                <div class="flex items-center bg-[#0f1624] border border-slate-800 rounded-xl px-2.5 py-1.5">
+                    <i class="fa-solid fa-server text-cyan-400 text-xs mr-2"></i>
+                    <label for="cluster-filter" class="sr-only">Filter Cluster</label>
+                    <select id="cluster-filter" class="bg-transparent text-xs font-medium text-slate-200 focus:outline-none cursor-pointer pr-1">
+                        <option value="ALL" class="bg-[#0f1624]">Cluster: Semua (10 Node)</option>
+                        <option value="Produksi-ID" class="bg-[#0f1624]">Produksi-ID (Jakarta)</option>
+                        <option value="Cloud-SG" class="bg-[#0f1624]">Cloud-SG (Singapura)</option>
+                        <option value="DMZ-Firewall" class="bg-[#0f1624]">DMZ-Firewall (Edge)</option>
+                    </select>
+                </div>
+
+                <!-- Waktu Real-Time -->
+                <div class="hidden md:flex items-center gap-2 bg-[#0f1624] border border-slate-800 rounded-xl px-3 py-1.5 font-mono text-xs text-slate-300">
+                    <i class="fa-regular fa-clock text-cyan-400"></i>
+                    <span id="live-clock">--:--:-- WIB</span>
+                </div>
+
+                <!-- Toggle Live Data Stream (Play/Pause) -->
+                <button id="btn-toggle-stream" type="button" class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-cyan-300 transition active:scale-95">
+                    <i id="stream-icon" class="fa-solid fa-pause text-cyan-400"></i>
+                    <span id="stream-label">Live Stream: ON</span>
+                </button>
+
+                <!-- Tombol Simulasi Serangan / Lonjakan Trafik -->
+                <button id="btn-simulate-attack" type="button" class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white text-xs font-bold shadow-lg shadow-rose-600/25 border border-rose-400/30 transition active:scale-95">
+                    <i class="fa-solid fa-biohazard animate-pulse"></i>
+                    <span id="simulate-btn-text">Simulasikan Serangan</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- =====================================================================
+         MAIN CONTENT CONTAINER
+    ====================================================================== -->
+    <main class="flex-1 max-w-[1600px] w-full mx-auto px-4 lg:px-6 py-5 space-y-6">
+
+        <!-- Banner Peringatan Serangan Aktif (Muncul saat simulasi berjalan) -->
+        <div id="attack-alert-banner" class="hidden rounded-2xl bg-rose-950/70 border border-rose-500/60 p-4 glow-crimson transition-all">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div class="flex items-start sm:items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0">
+                        <i class="fa-solid fa-triangle-exclamation text-lg animate-bounce"></i>
+                    </div>
+                    <div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-600 text-white uppercase tracking-wider">CRITICAL INTRUSION DETECTED</span>
+                            <h2 id="attack-banner-title" class="text-sm sm:text-base font-bold text-rose-100">Lonjakan Trafik Anomali & SYN Flood DDoS Terdeteksi!</h2>
+                        </div>
+                        <p id="attack-banner-desc" class="text-xs text-rose-200/90 mt-0.5 font-mono">AI Heuristic Engine mendeteksi 48.200 pkt/s anomali pada interface eth0 (DMZ-Firewall). Mitigasi IPS otomatis aktif.</p>
+                    </div>
+                </div>
+                <button id="btn-mitigate-attack" type="button" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md transition shrink-0 self-start md:self-center">
+                    <i class="fa-solid fa-shield-virus mr-1.5"></i>Aktifkan Mitigasi Scrubbing
+                </button>
+            </div>
+        </div>
+
+        <!-- =================================================================
+             2. KPI SUMMARY CARDS (4 KARTU UTAMA)
+        ================================================================== -->
+        <section aria-label="Ringkasan Metrik Utama" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            
+            <!-- Card 1: Total Uptime Server -->
+            <div class="bg-[#0f1624] border border-slate-800/90 hover:border-slate-700 rounded-2xl p-4 sm:p-5 transition relative overflow-hidden group">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Uptime Server</p>
+                        <div class="flex items-baseline gap-2 mt-1.5">
+                            <h3 id="kpi-uptime" class="text-2xl sm:text-3xl font-extrabold font-mono text-white">99.98%</h3>
+                            <span id="kpi-nodes-online" class="text-xs font-mono font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg">10/10 Online</span>
+                        </div>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                        <i class="fa-solid fa-heart-pulse text-base"></i>
+                    </div>
+                </div>
+                <!-- Breakdown Linux vs Windows -->
+                <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono">
+                    <span class="flex items-center gap-1.5 text-slate-300">
+                        <i class="fa-brands fa-linux text-amber-400"></i> Linux: <strong id="kpi-linux-uptime" class="text-emerald-400">99.99%</strong>
+                    </span>
+                    <span class="flex items-center gap-1.5 text-slate-300">
+                        <i class="fa-brands fa-windows text-cyan-400"></i> Windows: <strong id="kpi-win-uptime" class="text-emerald-400">99.96%</strong>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Card 2: Latensi Rata-rata & Jitter -->
+            <div class="bg-[#0f1624] border border-slate-800/90 hover:border-slate-700 rounded-2xl p-4 sm:p-5 transition relative overflow-hidden">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Latensi Jaringan (RTT)</p>
+                        <div class="flex items-baseline gap-2 mt-1.5">
+                            <h3 id="kpi-latency" class="text-2xl sm:text-3xl font-extrabold font-mono text-cyan-400">14.2 <span class="text-base font-normal text-slate-400">ms</span></h3>
+                            <span id="kpi-latency-badge" class="text-xs font-mono font-semibold text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-lg">Optimal</span>
+                        </div>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                        <i class="fa-solid fa-wave-square text-base"></i>
+                    </div>
+                </div>
+                <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono">
+                    <span class="text-slate-400">Jitter: <strong id="kpi-jitter" class="text-slate-200">1.4 ms</strong></span>
+                    <span class="text-slate-400">Packet Loss: <strong id="kpi-pktloss" class="text-emerald-400">0.00%</strong></span>
+                </div>
+            </div>
+
+            <!-- Card 3: Throughput Bandwidth -->
+            <div class="bg-[#0f1624] border border-slate-800/90 hover:border-slate-700 rounded-2xl p-4 sm:p-5 transition relative overflow-hidden">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Throughput Bandwidth</p>
+                        <div class="flex items-baseline gap-2 mt-1.5">
+                            <h3 id="kpi-bandwidth" class="text-2xl sm:text-3xl font-extrabold font-mono text-white">3.84 <span class="text-base font-normal text-slate-400">Gbps</span></h3>
+                            <span id="kpi-bw-percent" class="text-xs font-mono font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-lg">38% Kapasitas</span>
+                        </div>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                        <i class="fa-solid fa-network-wired text-base"></i>
+                    </div>
+                </div>
+                <!-- Capacity Progress Bar -->
+                <div class="mt-3">
+                    <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                        <div id="kpi-bw-bar" class="bg-gradient-to-r from-cyan-400 to-blue-500 h-full rounded-full transition-all duration-500" style="width: 38%"></div>
+                    </div>
+                    <div class="flex justify-between text-[11px] font-mono text-slate-400 mt-1.5">
+                        <span><i class="fa-solid fa-arrow-down text-cyan-400 mr-1"></i>IN: <strong id="kpi-in-mbps" class="text-slate-200">2,410 Mbps</strong></span>
+                        <span><i class="fa-solid fa-arrow-up text-purple-400 mr-1"></i>OUT: <strong id="kpi-out-mbps" class="text-slate-200">1,430 Mbps</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 4: Skor Ancaman Siber & Alert Aktif -->
+            <div id="kpi-threat-card" class="bg-[#0f1624] border border-slate-800/90 hover:border-slate-700 rounded-2xl p-4 sm:p-5 transition relative overflow-hidden">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Skor Ancaman Siber</p>
+                        <div class="flex items-baseline gap-2 mt-1.5">
+                            <h3 id="kpi-threat-score" class="text-2xl sm:text-3xl font-extrabold font-mono text-emerald-400">18<span class="text-base font-normal text-slate-400">/100</span></h3>
+                            <span id="kpi-threat-level" class="text-xs font-mono font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg">RENDAH</span>
+                        </div>
+                    </div>
+                    <div id="kpi-threat-icon-box" class="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+                        <i class="fa-solid fa-user-shield text-base"></i>
+                    </div>
+                </div>
+                <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono">
+                    <span class="text-slate-400">IPS Diblokir: <strong id="kpi-blocked-count" class="text-rose-400">1,429</strong></span>
+                    <span class="text-slate-400">Alert Aktif: <strong id="kpi-active-alerts" class="text-amber-400">2</strong></span>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- =================================================================
+             3. GRAFIK TELEMETRI REAL-TIME & 5A. AI ANOMALY DETECTION PANEL
+        ================================================================== -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            
+            <!-- Real-Time Bandwidth & Latency Chart (8 cols) -->
+            <div class="lg:col-span-8 bg-[#0f1624] border border-slate-800/90 rounded-2xl p-4 sm:p-5 flex flex-col">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-sm sm:text-base font-bold text-white">Telemetri Bandwidth & Latensi Jaringan Real-Time</h2>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">SNMP / NetFlow v9</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-0.5">Pemantauan paket masuk/keluar (Mbps) dan latensi core gateway (ms) per detik</p>
+                    </div>
+
+                    <!-- Time Range Selector & Legend -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div class="inline-flex rounded-xl bg-[#090d16] p-1 border border-slate-800" role="group" aria-label="Rentang Waktu Grafik">
+                            <button type="button" data-range="1m" class="time-range-btn px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition">1m</button>
+                            <button type="button" data-range="15m" class="time-range-btn px-2.5 py-1 rounded-lg text-xs font-mono font-medium text-slate-400 hover:text-slate-200 transition">15m</button>
+                            <button type="button" data-range="1j" class="time-range-btn px-2.5 py-1 rounded-lg text-xs font-mono font-medium text-slate-400 hover:text-slate-200 transition">1j</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom Legend Bar -->
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3 px-3 py-2 rounded-xl bg-[#090d16]/80 border border-slate-800/80 text-xs font-mono">
+                    <div class="flex flex-wrap items-center gap-4">
+                        <span class="flex items-center gap-1.5 text-slate-300">
+                            <span class="w-3 h-1.5 rounded-full bg-cyan-400"></span> Inbound (Mbps)
+                        </span>
+                        <span class="flex items-center gap-1.5 text-slate-300">
+                            <span class="w-3 h-1.5 rounded-full bg-purple-400"></span> Outbound (Mbps)
+                        </span>
+                        <span class="flex items-center gap-1.5 text-slate-300">
+                            <span class="w-3 h-0.5 border-t-2 border-dashed border-amber-400"></span> Latensi (ms)
+                        </span>
+                        <span class="flex items-center gap-1.5 text-rose-400">
+                            <span class="w-2.5 h-2.5 rounded-full bg-rose-500/40 border border-rose-500"></span> Titik Anomali
+                        </span>
+                    </div>
+                    <div id="chart-hover-readout" class="text-slate-400 text-[11px]">
+                        Arahkan kursor pada grafik untuk inspeksi titik data
+                    </div>
+                </div>
+
+                <!-- Responsive Canvas Wrapper -->
+                <div id="telemetry-chart-wrapper" class="relative w-full h-[260px] sm:h-[300px] bg-[#090d16]/60 rounded-xl border border-slate-800/70 overflow-hidden">
+                    <canvas id="telemetryCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+                </div>
+            </div>
+
+            <!-- AI / Heuristic Anomaly Detection Panel (4 cols) -->
+            <div class="lg:col-span-4 bg-[#0f1624] border border-slate-800/90 rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                                <i class="fa-solid fa-brain"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-sm sm:text-base font-bold text-white">Deteksi Anomali AI</h2>
+                                <p class="text-[11px] text-slate-400">Behavioral & Heuristic IDS Engine</p>
+                            </div>
+                        </div>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">ML-MODEL AKTIF</span>
+                    </div>
+
+                    <!-- Anomaly Gauge Bar -->
+                    <div class="p-3.5 rounded-xl bg-[#090d16] border border-slate-800 mb-4">
+                        <div class="flex items-center justify-between text-xs mb-1.5">
+                            <span class="text-slate-400 font-medium">Indeks Deviasi Trafik (Baseline)</span>
+                            <span id="ai-deviation-value" class="font-mono font-bold text-cyan-400">+4.2% Normal</span>
+                        </div>
+                        <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div id="ai-deviation-bar" class="h-full bg-gradient-to-r from-emerald-400 via-cyan-400 to-rose-500 rounded-full transition-all duration-500" style="width: 18%;"></div>
+                        </div>
+                        <div class="flex justify-between text-[10px] font-mono text-slate-500 mt-1">
+                            <span>0 (Aman)</span>
+                            <span>50 (Waspada)</span>
+                            <span>100 (Kritis)</span>
+                        </div>
+                    </div>
+
+                    <!-- Vector Ancaman Terpantau -->
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">Klasifikasi Vektor Ancaman</h3>
+                    <div id="threat-vectors-list" class="space-y-2.5">
+                        <!-- DDoS SYN Flood -->
+                        <div id="vector-ddos" class="p-2.5 rounded-xl bg-[#090d16]/90 border border-slate-800 flex items-center justify-between transition">
+                            <div class="flex items-center gap-2.5">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400" id="dot-ddos"></span>
+                                <div>
+                                    <p class="text-xs font-semibold text-slate-200">DDoS SYN / UDP Flood</p>
+                                    <p class="text-[11px] font-mono text-slate-400">Edge Gateway & DMZ</p>
+                                </div>
+                            </div>
+                            <span id="badge-ddos" class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">0.2% Risk</span>
+                        </div>
+
+                        <!-- SSH Brute Force -->
+                        <div id="vector-ssh" class="p-2.5 rounded-xl bg-[#090d16]/90 border border-slate-800 flex items-center justify-between transition">
+                            <div class="flex items-center gap-2.5">
+                                <span class="w-2 h-2 rounded-full bg-amber-400" id="dot-ssh"></span>
+                                <div>
+                                    <p class="text-xs font-semibold text-slate-200">SSH / RDP Brute Force</p>
+                                    <p class="text-[11px] font-mono text-slate-400">Port 22 & 3389 Auth</p>
+                                </div>
+                            </div>
+                            <span id="badge-ssh" class="text-[11px] font-mono px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">14 Percobaan</span>
+                        </div>
+
+                        <!-- Port Scan -->
+                        <div id="vector-scan" class="p-2.5 rounded-xl bg-[#090d16]/90 border border-slate-800 flex items-center justify-between transition">
+                            <div class="flex items-center gap-2.5">
+                                <span class="w-2 h-2 rounded-full bg-cyan-400" id="dot-scan"></span>
+                                <div>
+                                    <p class="text-xs font-semibold text-slate-200">Stealth Nmap Port Scan</p>
+                                    <p class="text-[11px] font-mono text-slate-400">Reconnaissance Probe</p>
+                                </div>
+                            </div>
+                            <span id="badge-scan" class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">Terblokir</span>
+                        </div>
+
+                        <!-- SMB Lateral Movement -->
+                        <div id="vector-smb" class="p-2.5 rounded-xl bg-[#090d16]/90 border border-slate-800 flex items-center justify-between transition">
+                            <div class="flex items-center gap-2.5">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400" id="dot-smb"></span>
+                                <div>
+                                    <p class="text-xs font-semibold text-slate-200">SMB Lateral Movement</p>
+                                    <p class="text-[11px] font-mono text-slate-400">Internal East-West Traffic</p>
+                                </div>
+                            </div>
+                            <span id="badge-smb" class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">Clean</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                    <span>Auto-IPS Response: <strong class="text-emerald-400">ENABLED</strong></span>
+                    <span id="ai-last-scan">Scan: Baru saja</span>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- =================================================================
+             4. INVENTARIS & UPTIME SERVER LINUX / WINDOWS (SNMP & AGENT)
+        ================================================================== -->
+        <section class="bg-[#0f1624] border border-slate-800/90 rounded-2xl p-4 sm:p-5">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-sm sm:text-base font-bold text-white">Inventaris & Uptime Server Linux / Windows</h2>
+                        <span class="px-2 py-0.5 rounded-md text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">SNMPv3 & Native Agents</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-0.5">Klik pada baris server untuk membuka inspeksi proses, layanan, uji ping, atau restart agen monitoring.</p>
+                </div>
+
+                <!-- Filter OS & Search -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <div class="inline-flex rounded-xl bg-[#090d16] p-1 border border-slate-800 text-xs">
+                        <button type="button" data-os="ALL" class="os-filter-btn px-2.5 py-1 rounded-lg font-semibold bg-slate-800 text-white transition">Semua</button>
+                        <button type="button" data-os="Linux" class="os-filter-btn px-2.5 py-1 rounded-lg font-medium text-slate-400 hover:text-white transition"><i class="fa-brands fa-linux text-amber-400 mr-1"></i>Linux</button>
+                        <button type="button" data-os="Windows" class="os-filter-btn px-2.5 py-1 rounded-lg font-medium text-slate-400 hover:text-white transition"><i class="fa-brands fa-windows text-cyan-400 mr-1"></i>Windows</button>
+                    </div>
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass text-slate-500 text-xs absolute left-3 top-1/2 -translate-y-1/2"></i>
+                        <input id="server-search-input" type="text" placeholder="Cari hostname / IP..." class="bg-[#090d16] border border-slate-800 focus:border-cyan-500 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none w-44 sm:w-52 font-mono">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Responsive Table -->
+            <div class="overflow-x-auto rounded-xl border border-slate-800/90">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-[#090d16] border-b border-slate-800 text-[11px] font-mono uppercase tracking-wider text-slate-400">
+                            <th class="py-3 px-4">Hostname & OS</th>
+                            <th class="py-3 px-3">IP Address & Cluster</th>
+                            <th class="py-3 px-3">Metode Integrasi</th>
+                            <th class="py-3 px-3">Uptime</th>
+                            <th class="py-3 px-3 min-w-[120px]">CPU Load</th>
+                            <th class="py-3 px-3 min-w-[120px]">RAM Usage</th>
+                            <th class="py-3 px-3 min-w-[110px]">Disk</th>
+                            <th class="py-3 px-4 text-right">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="server-table-body" class="divide-y divide-slate-800/70 text-xs">
+                        <!-- Diisi secara dinamis oleh JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- =================================================================
+             5B. LIVE FIREWALL & IPS LOGS + 6. KONFIGURASI SNMP & AGENT
+        ================================================================== -->
+        <section class="grid grid-cols-1 xl:grid-cols-12 gap-5">
+            
+            <!-- Live Firewall & IPS Logs (7 cols) -->
+            <div class="xl:col-span-7 bg-[#0f1624] border border-slate-800/90 rounded-2xl p-4 sm:p-5 flex flex-col">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-sm sm:text-base font-bold text-white">Log Firewall & Intrusion Prevention (IPS) Live</h2>
+                            <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-0.5">Aliran kejadian keamanan real-time & aksi mitigasi otomatis perimeter</p>
+                    </div>
+
+                    <!-- Filter Severity & Action -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <select id="log-severity-filter" class="bg-[#090d16] border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none">
+                            <option value="ALL">Severity: Semua</option>
+                            <option value="CRITICAL">CRITICAL</option>
+                            <option value="HIGH">HIGH</option>
+                            <option value="MEDIUM">MEDIUM</option>
+                            <option value="INFO">INFO</option>
+                        </select>
+                        <select id="log-action-filter" class="bg-[#090d16] border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none">
+                            <option value="ALL">Aksi: Semua</option>
+                            <option value="BLOCKED">BLOCKED</option>
+                            <option value="DROPPED">DROPPED</option>
+                            <option value="QUARANTINED">QUARANTINED</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Scrollable Log Table -->
+                <div class="overflow-x-auto overflow-y-auto max-h-[380px] rounded-xl border border-slate-800/90 bg-[#090d16]/70">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="sticky top-0 bg-[#090d16] border-b border-slate-800 text-[10px] font-mono uppercase tracking-wider text-slate-400 z-10">
+                            <tr>
+                                <th class="py-2.5 px-3">Waktu</th>
+                                <th class="py-2.5 px-2">Severity</th>
+                                <th class="py-2.5 px-3">Sumber IP (Negara)</th>
+                                <th class="py-2.5 px-2">Port / Rule</th>
+                                <th class="py-2.5 px-2">Ancaman</th>
+                                <th class="py-2.5 px-2">Aksi</th>
+                                <th class="py-2.5 px-3 text-right">Respon Cepat</th>
+                            </tr>
+                        </thead>
+                        <tbody id="firewall-log-body" class="divide-y divide-slate-800/60 font-mono text-[11px]">
+                            <!-- Diisi secara dinamis oleh JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Panel Konfigurasi Integrasi SNMP & Agent (5 cols) -->
+            <div class="xl:col-span-5 bg-[#0f1624] border border-slate-800/90 rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                                <i class="fa-solid fa-plug-circle-check"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-sm sm:text-base font-bold text-white">Integrasi SNMP & Agen Telemetry</h2>
+                                <p class="text-[11px] text-slate-400">Status Polling SNMPv3 & Deploy Agent Linux/Windows</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status Konektivitas SNMP Traps/Polling -->
+                    <div class="grid grid-cols-2 gap-2.5 mb-4">
+                        <div class="p-3 rounded-xl bg-[#090d16] border border-slate-800">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[11px] font-mono text-slate-400">SNMPv3 AuthPriv</span>
+                                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                            </div>
+                            <p class="text-sm font-bold font-mono text-white mt-1">UDP/161-162</p>
+                            <p class="text-[10px] font-mono text-emerald-400 mt-0.5">SHA-256 / AES-128 OK</p>
+                        </div>
+                        <div class="p-3 rounded-xl bg-[#090d16] border border-slate-800">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[11px] font-mono text-slate-400">gRPC Agent Collector</span>
+                                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                            </div>
+                            <p class="text-sm font-bold font-mono text-white mt-1">TLS 1.3 :9443</p>
+                            <p class="text-[10px] font-mono text-cyan-400 mt-0.5">10/10 Heartbeat Sync</p>
+                        </div>
+                    </div>
+
+                    <!-- Tab Selector untuk Linux Bash vs Windows PowerShell vs SNMPv3 -->
+                    <div class="flex items-center gap-1.5 bg-[#090d16] p-1 rounded-xl border border-slate-800 mb-3">
+                        <button type="button" data-agent-tab="linux" class="agent-tab-btn flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold bg-slate-800 text-cyan-300 transition flex items-center justify-center gap-1.5">
+                            <i class="fa-brands fa-linux text-amber-400"></i> Linux Agent
+                        </button>
+                        <button type="button" data-agent-tab="windows" class="agent-tab-btn flex-1 py-1.5 px-2 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 transition flex items-center justify-center gap-1.5">
+                            <i class="fa-brands fa-windows text-cyan-400"></i> Windows Agent
+                        </button>
+                        <button type="button" data-agent-tab="snmp" class="agent-tab-btn flex-1 py-1.5 px-2 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 transition flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-network-wired text-emerald-400"></i> SNMPv3 MIB
+                        </button>
+                    </div>
+
+                    <!-- Code Snippet Box -->
+                    <div class="relative rounded-xl bg-[#060911] border border-slate-800 p-3.5">
+                        <div class="flex items-center justify-between mb-2">
+                            <span id="agent-snippet-title" class="text-[11px] font-mono text-slate-400">Ubuntu / RHEL / Debian (Bash One-Liner)</span>
+                            <button id="btn-copy-snippet" type="button" class="px-2.5 py-1 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 text-[11px] font-mono font-semibold transition flex items-center gap-1.5">
+                                <i class="fa-regular fa-copy"></i>
+                                <span>Salin Perintah</span>
+                            </button>
+                        </div>
+                        <pre id="agent-snippet-code" class="font-mono text-[11px] text-emerald-300 overflow-x-auto whitespace-pre-wrap break-all leading-relaxed select-all">curl -sSL https://soc.aegis-ops.id/install-agent.sh | sudo bash -s -- --token="ag_live_98f2a1c4e" --cluster="Produksi-ID" --enable-ebpf-ids</pre>
+                    </div>
+                </div>
+
+                <!-- SNMP Trap Test / Sync Button -->
+                <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                    <span class="text-[11px] text-slate-400">Interval Polling: <strong class="font-mono text-slate-200">1000ms</strong></span>
+                    <button id="btn-test-snmp" type="button" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition">
+                        <i class="fa-solid fa-satellite-dish text-cyan-400 mr-1.5"></i>Uji SNMP Walk & Heartbeat
+                    </button>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- =====================================================================
+         MODAL DETAIL SERVER (SAAT SALAH SATU SERVER DIKLIK)
+    ====================================================================== -->
+    <div id="server-detail-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+        <div class="bg-[#0f1624] border border-slate-700 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden animate-[fadeIn_0.2s_ease-out]">
+            <!-- Modal Header -->
+            <div class="bg-[#090d16] px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div id="modal-os-icon" class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-lg"></div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 id="modal-hostname" class="text-base font-bold font-mono text-white">srv-prod-jkt-01</h3>
+                            <span id="modal-status-badge" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400">ONLINE</span>
+                        </div>
+                        <p id="modal-os-subtitle" class="text-xs text-slate-400 font-mono">Ubuntu 24.04.1 LTS • 10.24.10.11 • Produksi-ID</p>
+                    </div>
+                </div>
+                <button id="btn-close-modal" type="button" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
+                <!-- Quick Specs -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono">
+                    <div class="p-3 rounded-xl bg-[#090d16] border border-slate-800">
+                        <span class="text-[10px] text-slate-400 uppercase">Uptime</span>
+                        <p id="modal-uptime" class="text-xs font-bold text-emerald-400 mt-1">142h 18j 44m</p>
+                    </div>
+                    <div class="p-3 rounded-xl bg-[#090d16] border border-slate-800">
+                        <span class="text-[10px] text-slate-400 uppercase">Integrasi</span>
+                        <p id="modal-agent" class="text-xs font-bold text-cyan-400 mt-1">Prometheus + SNMPv3</p>
+                    </div>
+                    <div class="p-3 rounded-xl bg-[#090d16] border border-slate-800">
+                        <span class="text-[10px] text-slate-400 uppercase">CPU / RAM</span>
+                        <p id="modal-cpuram" class="text-xs font-bold text-white mt-1">24% / 58%</p>
+                    </div>
+                    <div class="p-3 rounded-xl bg-[#090d16] border border-slate-800">
+                        <span class="text-[10px] text-slate-400 uppercase">Kernel / Build</span>
+                        <p id="modal-kernel" class="text-xs font-bold text-slate-300 mt-1">6.8.0-45-generic</p>
+                    </div>
+                </div>
+
+                <!-- Active Services & Processes -->
+                <div>
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Layanan Kritis & Daemon Terpantau</h4>
+                    <div id="modal-services-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono text-xs">
+                        <!-- Diisi via JS -->
+                    </div>
+                </div>
+
+                <!-- Interactive Terminal Output Box -->
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Konsol Diagnostik & Aksi Agent</h4>
+                        <span class="text-[10px] font-mono text-slate-500">SSH/WMI Tunnel Ready</span>
+                    </div>
+                    <div id="modal-console-output" class="bg-[#060911] border border-slate-800 rounded-xl p-3 font-mono text-[11px] text-slate-300 h-28 overflow-y-auto space-y-1">
+                        <div class="text-slate-500">[SYSTEM] Koneksi telemetri terverifikasi. Siap menjalankan perintah diagnostik...</div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-slate-800">
+                    <button id="btn-modal-ping" type="button" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-cyan-300 border border-slate-700 transition">
+                        <i class="fa-solid fa-satellite mr-1.5"></i>Ping & Latency Test
+                    </button>
+                    <button id="btn-modal-restart-agent" type="button" class="px-3.5 py-2 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 text-xs font-semibold text-amber-300 border border-amber-500/30 transition">
+                        <i class="fa-solid fa-rotate mr-1.5"></i>Restart Telemetry Agent
+                    </button>
+                    <button id="btn-modal-isolate" type="button" class="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white shadow-md transition">
+                        <i class="fa-solid fa-lock mr-1.5"></i>Isolasi Host (Quarantine)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =====================================================================
+         JAVASCRIPT APPLICATION LOGIC
+    ====================================================================== -->
+    <script>
+        (function () {
+            'use strict';
+
+            // =================================================================
+            // 1. STATE APLIKASI & DATA MOCK REALISTIS
+            // =================================================================
+            const state = {
+                isStreaming: true,
+                isUnderAttack: false,
+                selectedCluster: 'ALL',
+                selectedOS: 'ALL',
+                searchQuery: '',
+                timeRange: '1m', // '1m', '15m', '1j'
+                logSeverityFilter: 'ALL',
+                logActionFilter: 'ALL',
+                activeAgentTab: 'linux',
+                selectedServerId: null,
+                blockedCount: 1429,
+                activeAlerts: 2,
+                threatScore: 18,
+                // Riwayat grafik (60 titik data)
+                telemetryHistory: [],
+                // Daftar Server Linux & Windows
+                servers: [
+                    {
+                        id: 'srv-01',
+                        hostname: 'prod-jkt-core-01',
+                        os: 'Linux',
+                        distro: 'Ubuntu 24.04.1 LTS',
+                        kernel: '6.8.0-45-generic',
+                        ip: '10.24.10.11',
+                        cluster: 'Produksi-ID',
+                        integration: 'Prometheus Node + SNMPv3',
+                        uptime: '184h 12j 09m',
+                        cpu: 28,
+                        ram: 62,
+                        disk: 48,
+                        status: 'ONLINE',
+                        services: [
+                            { name: 'nginx.service', status: 'ACTIVE', pid: 1104 },
+                            { name: 'postgresql@16', status: 'ACTIVE', pid: 1492 },
+                            { name: 'node_exporter', status: 'ACTIVE', pid: 982 },
+                            { name: 'snmpd.service', status: 'ACTIVE', pid: 874 }
+                        ]
+                    },
+                    {
+                        id: 'srv-02',
+                        hostname: 'prod-jkt-db-02',
+                        os: 'Linux',
+                        distro: 'RHEL 9.4 Enterprise',
+                        kernel: '5.14.0-427.el9',
+                        ip: '10.24.10.12',
+                        cluster: 'Produksi-ID',
+                        integration: 'Prometheus Node + eBPF',
+                        uptime: '241h 05j 51m',
+                        cpu: 54,
+                        ram: 78,
+                        disk: 67,
+                        status: 'ONLINE',
+                        services: [
+                            { name: 'mysqld.service', status: 'ACTIVE', pid: 2210 },
+                            { name: 'redis-server', status: 'ACTIVE', pid: 1844 },
+                            { name: 'auditd.service', status: 'ACTIVE', pid: 612 },
+                            { name: 'aegis-ebpf-ids', status: 'ACTIVE', pid: 1091 }
+                        ]
+                    },
+                    {
+                        id: 'srv-03',
+                        hostname: 'win-ad-dc01.corp.id',
+                        os: 'Windows',
+                        distro: 'Windows Server 2025 Datacenter',
+                        kernel: 'Build 26100.2033',
+                        ip: '10.24.12.5',
+                        cluster: 'Produksi-ID',
+                        integration: 'Windows WMI / PerfMon Agent',
+                        uptime: '96h 19j 33m',
+                        cpu: 22,
+                        ram: 51,
+                        disk: 41,
+                        status: 'ONLINE',
+                        services: [
+                            { name: 'NTDS (Active Directory)', status: 'RUNNING', pid: 740 },
+                            { name: 'DNS Server', status: 'RUNNING', pid: 1320 },
+                            { name: 'AegisWinAgent', status: 'RUNNING', pid: 2890 },
+                            { name: 'WinDefend ATP', status: 'RUNNING', pid: 1940 }
+                        ]
+                    },
+                    {
+                        id: 'srv-04',
+                        hostname: 'win-erp-app02.corp.id',
+                        os: 'Windows',
+                        distro: 'Windows Server 2022 Standard',
+                        kernel: 'Build 20348.2762',
+                        ip: '10.24.12.18',
+                        cluster: 'Produksi-ID',
+                        integration: 'WMI + SNMPv3 Trap',
+                        uptime: '64h 08j 12m',
+                        cpu: 74,
+                        ram: 84,
+                        disk: 62,
+                        status: 'WARNING',
+                        services: [
+                            { name: 'W3SVC (IIS Web)', status: 'RUNNING', pid: 3104 },
+                            { name: 'MSSQLSERVER', status: 'HIGH LOAD', pid: 4120 },
+                            { name: 'AegisWinAgent', status: 'RUNNING', pid: 1510 },
+                            { name: 'SNMP Service', status: 'RUNNING', pid: 1188 }
+                        ]
+                    },
+                    {
+                        id: 'srv-05',
+                        hostname: 'sg-k8s-worker-01',
+                        os: 'Linux',
+                        distro: 'Debian 12.7 Bookworm',
+                        kernel: '6.1.0-25-amd64',
+                        ip: '172.16.40.21',
+                        cluster: 'Cloud-SG',
+                        integration: 'Prometheus Node Exporter',
+                        uptime: '112h 14j 27m',
+                        cpu: 36,
+                        ram: 65,
+                        disk: 53,
+                        status: 'ONLINE',
+                        services: [
+                            { name: 'kubelet.service', status: 'ACTIVE', pid: 1410 },
+                            { name: 'containerd', status: 'ACTIVE', pid: 1022 },
+                            { name: 'cilium-agent', status: 'ACTIVE', pid: 1789 },
+                            { name: 'node_exporter', status: 'ACTIVE', pid: 990 }
+                        ]
+                    },
+                    {
+                        id: 'srv-06',
+                        hostname: 'sg-api-gateway-02',
+                        os: 'Linux',
+                        distro: 'Ubuntu 22.04.5 LTS',
+                        kernel: '5.15.0-122-generic',
+                        ip: '172.16.40.22',
+                        cluster: 'Cloud-SG',
+                        integration: 'Prometheus + SNMPv3',
+                        uptime: '159h 21j 04m',
+                        cpu: 31,
+                        ram: 49,
+                        disk: 35,
+                        status: 'ONLINE',
+                        services: [
+                            { name: 'envoy-proxy', status: 'ACTIVE', pid: 2041 },
+                            { name: 'kong-gateway', status: 'ACTIVE', pid: 2311 },
+                            { name: 'snmpd.service', status: 'ACTIVE', pid: 812 },
+                            { name: 'fail2ban', status: 'ACTIVE', pid: 943 }
+                        ]
+                    },
+                    {
+                        id: 'srv-07',
+                        hostname: 'win-sg-rds-01',
+                        os: 'Windows',
+                        distro: 'Windows Server 2022 Datacenter',
+                        kernel: 'Build 20348.2762',
+                        ip: '172.16.42.10',
+                        cluster: 'Cloud-SG',
+                        integration: 'Windows PerfMon Agent',
+                        uptime: '48h 11j 55m',
+                        cpu: 19,
+                        ram: 44,
+                        disk: 38,
+                        status: 'ONLINE',
+                        services: [
+                            { name: 'TermService (RDP)', status: 'RUNNING', pid: 1204 },
+                            { name: 'AegisWinAgent', status: 'RUNNING', pid: 2019 },
+                            { name: 'EventLog', status: 'RUNNING', pid: 880 },
+                            { name: 'MpsSvc (Firewall)', status: 'RUNNING', pid: 912 }
+                        ]
+                    },
+                    {
+                        id: 'srv-08',
+                        hostname: 'dmz-fw-edge-01',
+                        os: 'Linux',
+                        distro: 'Hardened Linux / Suricata IPS',
+                        kernel: '6.6.52-hardened',
+                        ip: '203.0.113.10',
+                        cluster: 'DMZ-Firewall',
+                        integration: 'SNMPv3 + NetFlow + Suricata',
+                        uptime: '310h 04j 19m',
+                        cpu: 42,
+                        ram: 57,
+                        disk: 29,
+                        status: 'ONLINE',
+                        services: [
+                            { name: 'suricata-ips', status: 'ACTIVE', pid: 1301 },
+                            { name: 'nftables.service', status: 'ACTIVE', pid: 512 },
+                            { name: 'snmpd.service', status: 'ACTIVE', pid: 788 },
+                            { name: 'bgp-bird2', status: 'ACTIVE', pid: 1120 }
+                        ]
+                    },
+                    {
+                        id: 'srv-09',
+                        hostname: 'dmz-waf-proxy-02',
+                        os: 'Linux',
+                        distro: 'Rocky Linux 9.4',
+                        kernel: '5.14.0-427.el9',
+                        ip: '203.0.113.14',
+                        cluster: 'DMZ-Firewall',
+                        integration: 'Prometheus Node + SNMPv3',
+                        uptime: '205h 17j 40m',
+                        cpu: 39,
+                        ram: 61,
+                        disk: 44,
+                        status: 'ONLINE',
+                        services: [
+                            { name: 'modsecurity-waf', status: 'ACTIVE', pid: 1877 },
+                            { name: 'haproxy.service', status: 'ACTIVE', pid: 1650 },
+                            { name: 'node_exporter', status: 'ACTIVE', pid: 910 },
+                            { name: 'crowdsec-agent', status: 'ACTIVE', pid: 1499 }
+                        ]
+                    },
+                    {
+                        id: 'srv-10',
+                        hostname: 'dmz-win-exchange-edge',
+                        os: 'Windows',
+                        distro: 'Windows Server 2022 Core',
+                        kernel: 'Build 20348.2762',
+                        ip: '203.0.113.25',
+                        cluster: 'DMZ-Firewall',
+                        integration: 'WMI / PerfMon + Sysmon',
+                        uptime: '88h 03j 15m',
+                        cpu: 27,
+                        ram: 53,
+                        disk: 49,
+                        status: 'ONLINE',
+                        services: [
+                            { name: 'MSExchangeTransport', status: 'RUNNING', pid: 3412 },
+                            { name: 'Sysmon64', status: 'RUNNING', pid: 1408 },
+                            { name: 'AegisWinAgent', status: 'RUNNING', pid: 2110 },
+                            { name: 'W32Time', status: 'RUNNING', pid: 1094 }
+                        ]
+                    }
+                ],
+                // Log Firewall & IPS
+                firewallLogs: []
+            };
+
+            // Snippet instalasi agen
+            const agentSnippets = {
+                linux: {
+                    title: 'Ubuntu / RHEL / Debian (Bash One-Liner + eBPF IDS)',
+                    code: 'curl -sSL https://soc.aegis-ops.id/install-agent.sh | sudo bash -s -- --token="ag_live_98f2a1c4e" --cluster="Produksi-ID" --enable-ebpf-ids'
+                },
+                windows: {
+                    title: 'Windows Server 2022/2025 (PowerShell Administrator)',
+                    code: 'irm https://soc.aegis-ops.id/install-win.ps1 | iex; Install-AegisAgent -Token "ag_win_77c10b9d" -EnableWMI -EnableSysmon'
+                },
+                snmp: {
+                    title: 'Konfigurasi SNMPv3 AuthPriv (/etc/snmp/snmpd.conf)',
+                    code: 'createUser aegisMonitor SHA-256 "S0cN0cAuth#2026" AES "EncKeyPriv!99"\nrouser aegisMonitor priv 1.3.6.1.2.1\ntrapsess -v 3 -u aegisMonitor -l authPriv 10.24.0.5:162'
+                }
+            };
+
+            // Pool Ancaman untuk Simulasi Log
+            const sampleThreats = [
+                { severity: 'HIGH', srcIp: '185.220.101.44', country: 'DE', port: '22/TCP', rule: 'IPS-2041', threat: 'SSH Brute Force', action: 'BLOCKED' },
+                { severity: 'MEDIUM', srcIp: '45.155.205.91', country: 'NL', port: '445/TCP', rule: 'FW-1088', threat: 'SMB Probe Scan', action: 'DROPPED' },
+                { severity: 'INFO', srcIp: '10.24.10.12', country: 'ID', port: '161/UDP', rule: 'SNMP-01', threat: 'SNMPv3 Poll OK', action: 'ALLOWED' },
+                { severity: 'HIGH', srcIp: '91.240.118.172', country: 'RU', port: '3389/TCP', rule: 'IPS-3310', threat: 'RDP BlueKeep Exploit', action: 'BLOCKED' },
+                { severity: 'MEDIUM', srcIp: '103.145.13.88', country: 'SG', port: '443/TCP', rule: 'WAF-402', threat: 'SQLi Payload Pattern', action: 'BLOCKED' },
+                { severity: 'CRITICAL', srcIp: '194.26.135.29', country: 'UA', port: '80/TCP', rule: 'DDOS-901', threat: 'SYN Flood Burst', action: 'DROPPED' },
+                { severity: 'MEDIUM', srcIp: '162.142.125.19', country: 'US', port: '8443/TCP', rule: 'SCAN-112', threat: 'Censys Port Sweep', action: 'DROPPED' }
+            ];
+
+            // =================================================================
+            // 2. INISIALISASI DATA AWAL
+            // =================================================================
+            function initTelemetryData() {
+                const now = Date.now();
+                state.telemetryHistory = [];
+                for (let i = 59; i >= 0; i--) {
+                    const t = new Date(now - i * 1000);
+                    const baseIn = 2250 + Math.sin(i * 0.25) * 280 + (Math.random() * 140 - 70);
+                    const baseOut = 1350 + Math.cos(i * 0.2) * 190 + (Math.random() * 90 - 45);
+                    const baseLat = 13.5 + Math.sin(i * 0.3) * 2.2 + (Math.random() * 1.4 - 0.7);
+                    state.telemetryHistory.push({
+                        time: formatTimeShort(t),
+                        inbound: Math.round(baseIn),
+                        outbound: Math.round(baseOut),
+                        latency: Number(baseLat.toFixed(1)),
+                        anomaly: false
+                    });
+                }
+            }
+
+            function initFirewallLogs() {
+                const now = Date.now();
+                for (let i = 0; i < 14; i++) {
+                    const item = sampleThreats[i % sampleThreats.length];
+                    const t = new Date(now - i * 4500);
+                    state.firewallLogs.push({
+                        id: 'log-' + Math.random().toString(36).substring(2, 9),
+                        time: formatTimeFull(t),
+                        ...item,
+                        isNew: false
+                    });
+                }
+            }
+
+            // =================================================================
+            // 3. HELPER FORMATTING & TOAST NOTIFICATION
+            // =================================================================
+            function formatTimeFull(date) {
+                return date.toTimeString().split(' ')[0];
+            }
+
+            function formatTimeShort(date) {
+                const parts = date.toTimeString().split(' ')[0].split(':');
+                return `${parts[1]}:${parts[2]}`;
+            }
+
+            function showToast(title, message, type = 'info') {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                
+                const styles = {
+                    info: 'bg-[#0f1624] border-cyan-500/50 text-cyan-300',
+                    success: 'bg-[#0f1624] border-emerald-500/50 text-emerald-300',
+                    warning: 'bg-[#0f1624] border-amber-500/50 text-amber-300',
+                    danger: 'bg-rose-950/95 border-rose-500/70 text-rose-200'
+                };
+                const icons = {
+                    info: 'fa-circle-info text-cyan-400',
+                    success: 'fa-circle-check text-emerald-400',
+                    warning: 'fa-triangle-exclamation text-amber-400',
+                    danger: 'fa-shield-virus text-rose-400'
+                };
+
+                toast.className = `pointer-events-auto border rounded-xl p-3.5 shadow-2xl backdrop-blur-md flex items-start gap-3 transition-all duration-300 transform translate-y-2 opacity-0 ${styles[type] || styles.info}`;
+                toast.innerHTML = `
+                    <i class="fa-solid ${icons[type] || icons.info} mt-0.5 text-sm"></i>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-bold text-white">${title}</p>
+                        <p class="text-[11px] text-slate-300 mt-0.5 leading-snug">${message}</p>
+                    </div>
+                `;
+                container.appendChild(toast);
+
+                requestAnimationFrame(() => {
+                    toast.classList.remove('translate-y-2', 'opacity-0');
+                });
+
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'translate-y-2');
+                    setTimeout(() => toast.remove(), 300);
+                }, 3800);
+            }
+
+            // =================================================================
+            // 4. RENDERING SERVER INVENTORY TABLE
+            // =================================================================
+            function getProgressColor(val) {
+                if (val >= 85) return 'bg-rose-500';
+                if (val >= 70) return 'bg-amber-400';
+                return 'bg-cyan-400';
+            }
+
+            function renderServerTable() {
+                const tbody = document.getElementById('server-table-body');
+                const filtered = state.servers.filter(srv => {
+                    const matchCluster = state.selectedCluster === 'ALL' || srv.cluster === state.selectedCluster;
+                    const matchOS = state.selectedOS === 'ALL' || srv.os === state.selectedOS;
+                    const q = state.searchQuery.toLowerCase().trim();
+                    const matchSearch = !q || srv.hostname.toLowerCase().includes(q) || srv.ip.includes(q) || srv.distro.toLowerCase().includes(q);
+                    return matchCluster && matchOS && matchSearch;
+                });
+
+                if (filtered.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="py-8 text-center text-slate-500 font-mono text-xs">
+                                Tidak ada node server yang cocok dengan filter saat ini.
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                tbody.innerHTML = filtered.map(srv => {
+                    const isLinux = srv.os === 'Linux';
+                    const osIcon = isLinux
+                        ? '<i class="fa-brands fa-linux text-amber-400 text-base"></i>'
+                        : '<i class="fa-brands fa-windows text-cyan-400 text-base"></i>';
+
+                    let statusBadge = '';
+                    if (srv.status === 'ONLINE') {
+                        statusBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>ONLINE</span>`;
+                    } else if (srv.status === 'WARNING') {
+                        statusBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30"><span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>HIGH LOAD</span>`;
+                    } else {
+                        statusBadge = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40"><i class="fa-solid fa-lock text-[9px]"></i>ISOLATED</span>`;
+                    }
+
+                    return `
+                        <tr data-server-id="${srv.id}" class="server-row hover:bg-[#151e30] cursor-pointer transition group">
+                            <td class="py-3 px-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-lg bg-[#090d16] border border-slate-800 flex items-center justify-center shrink-0 group-hover:border-cyan-500/40 transition">
+                                        ${osIcon}
+                                    </div>
+                                    <div>
+                                        <p class="font-mono font-bold text-slate-100 group-hover:text-cyan-300 transition">${srv.hostname}</p>
+                                        <p class="text-[11px] text-slate-400">${srv.distro}</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-3 px-3 font-mono">
+                                <p class="text-slate-200">${srv.ip}</p>
+                                <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800/90 text-slate-400">${srv.cluster}</span>
+                            </td>
+                            <td class="py-3 px-3">
+                                <span class="inline-flex items-center gap-1.5 text-[11px] font-mono text-cyan-300/90 bg-cyan-950/40 border border-cyan-800/40 px-2 py-1 rounded-lg">
+                                    <i class="fa-solid fa-plug text-[10px]"></i>${srv.integration}
+                                </span>
+                            </td>
+                            <td class="py-3 px-3 font-mono text-emerald-400 font-medium">${srv.uptime}</td>
+                            <td class="py-3 px-3 font-mono">
+                                <div class="flex items-center justify-between text-[11px] mb-1">
+                                    <span class="text-slate-300">${srv.cpu}%</span>
+                                </div>
+                                <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                                    <div class="${getProgressColor(srv.cpu)} h-full rounded-full transition-all duration-500" style="width: ${srv.cpu}%"></div>
+                                </div>
+                            </td>
+                            <td class="py-3 px-3 font-mono">
+                                <div class="flex items-center justify-between text-[11px] mb-1">
+                                    <span class="text-slate-300">${srv.ram}%</span>
+                                </div>
+                                <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                                    <div class="${getProgressColor(srv.ram)} h-full rounded-full transition-all duration-500" style="width: ${srv.ram}%"></div>
+                                </div>
+                            </td>
+                            <td class="py-3 px-3 font-mono">
+                                <div class="flex items-center justify-between text-[11px] mb-1">
+                                    <span class="text-slate-300">${srv.disk}%</span>
+                                </div>
+                                <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                                    <div class="bg-blue-400 h-full rounded-full" style="width: ${srv.disk}%"></div>
+                                </div>
+                            </td>
+                            <td class="py-3 px-4 text-right">${statusBadge}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                // Attach click listeners untuk membuka modal detail
+                document.querySelectorAll('.server-row').forEach(row => {
+                    row.addEventListener('click', () => {
+                        const srvId = row.getAttribute('data-server-id');
+                        openServerModal(srvId);
+                    });
+                });
+            }
+
+            // =================================================================
+            // 5. RENDERING FIREWALL & IPS LOGS
+            // =================================================================
+            function renderFirewallLogs() {
+                const tbody = document.getElementById('firewall-log-body');
+                const filtered = state.firewallLogs.filter(log => {
+                    const matchSev = state.logSeverityFilter === 'ALL' || log.severity === state.logSeverityFilter;
+                    const matchAct = state.logActionFilter === 'ALL' || log.action === state.logActionFilter;
+                    return matchSev && matchAct;
+                });
+
+                tbody.innerHTML = filtered.slice(0, 35).map(log => {
+                    const sevBadge = {
+                        CRITICAL: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
+                        HIGH: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+                        MEDIUM: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30',
+                        INFO: 'bg-slate-800 text-slate-300 border-slate-700'
+                    }[log.severity] || 'bg-slate-800 text-slate-300';
+
+                    const actColor = {
+                        BLOCKED: 'text-rose-400 font-bold',
+                        DROPPED: 'text-amber-400 font-bold',
+                        QUARANTINED: 'text-purple-400 font-bold',
+                        ALLOWED: 'text-emerald-400'
+                    }[log.action] || 'text-slate-300';
+
+                    return `
+                        <tr class="${log.isNew ? 'new-log-flash' : ''} hover:bg-slate-800/40 transition">
+                            <td class="py-2 px-3 text-slate-400 whitespace-nowrap">${log.time}</td>
+                            <td class="py-2 px-2">
+                                <span class="px-1.5 py-0.5 rounded text-[10px] border ${sevBadge}">${log.severity}</span>
+                            </td>
+                            <td class="py-2 px-3 text-slate-200 whitespace-nowrap">
+                                ${log.srcIp} <span class="text-[10px] text-slate-500">[${log.country}]</span>
+                            </td>
+                            <td class="py-2 px-2 text-slate-400 whitespace-nowrap">${log.port} <span class="text-slate-600">(${log.rule})</span></td>
+                            <td class="py-2 px-2 text-slate-200 whitespace-nowrap">${log.threat}</td>
+                            <td class="py-2 px-2 ${actColor} whitespace-nowrap">${log.action}</td>
+                            <td class="py-2 px-3 text-right whitespace-nowrap">
+                                <button type="button" data-ip="${log.srcIp}" class="btn-ban-ip px-2 py-0.5 rounded bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-[10px] transition" title="Blokir IP Permanen di Perimeter">
+                                    <i class="fa-solid fa-ban mr-1"></i>Blokir IP
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                // Reset flag isNew setelah render
+                state.firewallLogs.forEach(l => l.isNew = false);
+
+                // Event listener tombol Blokir IP Cepat
+                document.querySelectorAll('.btn-ban-ip').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const ip = btn.getAttribute('data-ip');
+                        state.blockedCount++;
+                        document.getElementById('kpi-blocked-count').textContent = state.blockedCount.toLocaleString('id-ID');
+                        showToast('Aturan Firewall Diperbarui', `IP ${ip} ditambahkan ke Blacklist Permanen BGP/NFTables.`, 'danger');
+                    });
+                });
+            }
+
+            // =================================================================
+            // 6. GRAFIK TELEMETRI REAL-TIME (HTML5 CANVAS RESPONSIVE)
+            // =================================================================
+            const canvas = document.getElementById('telemetryCanvas');
+            const ctx = canvas.getContext('2d');
+            let hoverIndex = -1;
+
+            function resizeCanvas() {
+                const wrapper = document.getElementById('telemetry-chart-wrapper');
+                const dpr = window.devicePixelRatio || 1;
+                const rect = wrapper.getBoundingClientRect();
+                canvas.width = rect.width * dpr;
+                canvas.height = rect.height * dpr;
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                drawTelemetryChart();
+            }
+
+            function drawTelemetryChart() {
+                const wrapper = document.getElementById('telemetry-chart-wrapper');
+                const width = wrapper.clientWidth;
+                const height = wrapper.clientHeight;
+                if (width === 0 || height === 0) return;
+
+                ctx.clearRect(0, 0, width, height);
+
+                const padLeft = 48;
+                const padRight = 42;
+                const padTop = 20;
+                const padBottom = 26;
+                const chartW = width - padLeft - padRight;
+                const chartH = height - padTop - padBottom;
+
+                // Multiplier visual untuk simulasi rentang waktu 1m / 15m / 1j
+                const rangeScale = state.timeRange === '1m' ? 1 : state.timeRange === '15m' ? 1.08 : 1.15;
+                const data = state.telemetryHistory;
+                const maxBw = state.isUnderAttack ? 9500 : 5000;
+                const maxLat = state.isUnderAttack ? 180 : 60;
+
+                // Horizontal Grid Lines & Axis Labels
+                ctx.font = '10px "JetBrains Mono", monospace';
+                ctx.lineWidth = 1;
+                const steps = 4;
+
+                for (let i = 0; i <= steps; i++) {
+                    const y = padTop + (chartH / steps) * i;
+                    ctx.strokeStyle = 'rgba(30, 41, 59, 0.7)';
+                    ctx.beginPath();
+                    ctx.moveTo(padLeft, y);
+                    ctx.lineTo(width - padRight, y);
+                    ctx.stroke();
+
+                    // Left Y-Axis (Bandwidth Mbps)
+                    const bwVal = Math.round(maxBw - (maxBw / steps) * i);
+                    ctx.fillStyle = '#64748b';
+                    ctx.textAlign = 'right';
+                    ctx.fillText(bwVal >= 1000 ? (bwVal / 1000).toFixed(1) + 'G' : bwVal + 'M', padLeft - 6, y + 3);
+
+                    // Right Y-Axis (Latency ms)
+                    const latVal = Math.round(maxLat - (maxLat / steps) * i);
+                    ctx.fillStyle = '#d97706';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(latVal + 'ms', width - padRight + 6, y + 3);
+                }
+
+                if (data.length < 2) return;
+
+                const stepX = chartW / (data.length - 1);
+
+                // Helper koordinat Y
+                const getYBw = (val) => padTop + chartH - Math.min(1, (val * rangeScale) / maxBw) * chartH;
+                const getYLat = (val) => padTop + chartH - Math.min(1, val / maxLat) * chartH;
+
+                // 1. Area & Line: INBOUND (Cyan)
+                const gradIn = ctx.createLinearGradient(0, padTop, 0, padTop + chartH);
+                gradIn.addColorStop(0, state.isUnderAttack ? 'rgba(244, 63, 94, 0.35)' : 'rgba(6, 182, 212, 0.28)');
+                gradIn.addColorStop(1, 'rgba(6, 182, 212, 0.0)');
+
+                ctx.beginPath();
+                ctx.moveTo(padLeft, padTop + chartH);
+                data.forEach((pt, idx) => {
+                    const x = padLeft + idx * stepX;
+                    ctx.lineTo(x, getYBw(pt.inbound));
+                });
+                ctx.lineTo(padLeft + (data.length - 1) * stepX, padTop + chartH);
+                ctx.closePath();
+                ctx.fillStyle = gradIn;
+                ctx.fill();
+
+                ctx.beginPath();
+                data.forEach((pt, idx) => {
+                    const x = padLeft + idx * stepX;
+                    const y = getYBw(pt.inbound);
+                    if (idx === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.strokeStyle = state.isUnderAttack ? '#fb7185' : '#22d3ee';
+                ctx.lineWidth = 2.2;
+                ctx.stroke();
+
+                // 2. Line: OUTBOUND (Purple)
+                ctx.beginPath();
+                data.forEach((pt, idx) => {
+                    const x = padLeft + idx * stepX;
+                    const y = getYBw(pt.outbound);
+                    if (idx === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.strokeStyle = '#c084fc';
+                ctx.lineWidth = 1.8;
+                ctx.stroke();
+
+                // 3. Dashed Line: LATENCY (Amber)
+                ctx.save();
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                data.forEach((pt, idx) => {
+                    const x = padLeft + idx * stepX;
+                    const y = getYLat(pt.latency);
+                    if (idx === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.strokeStyle = '#fbbf24';
+                ctx.lineWidth = 1.8;
+                ctx.stroke();
+                ctx.restore();
+
+                // 4. Anomaly Markers & X-Axis Time Labels
+                data.forEach((pt, idx) => {
+                    const x = padLeft + idx * stepX;
+                    if (idx % 10 === 0 || idx === data.length - 1) {
+                        ctx.fillStyle = '#64748b';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(pt.time, x, height - 8);
+                    }
+
+                    if (pt.anomaly) {
+                        const y = getYBw(pt.inbound);
+                        ctx.beginPath();
+                        ctx.arc(x, y, 5, 0, Math.PI * 2);
+                        ctx.fillStyle = 'rgba(239, 68, 68, 0.35)';
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+                        ctx.fillStyle = '#ef4444';
+                        ctx.fill();
+                    }
+                });
+
+                // 5. Crosshair saat Hover
+                if (hoverIndex >= 0 && hoverIndex < data.length) {
+                    const pt = data[hoverIndex];
+                    const x = padLeft + hoverIndex * stepX;
+
+                    ctx.save();
+                    ctx.setLineDash([2, 2]);
+                    ctx.strokeStyle = 'rgba(148, 163, 184, 0.6)';
+                    ctx.beginPath();
+                    ctx.moveTo(x, padTop);
+                    ctx.lineTo(x, padTop + chartH);
+                    ctx.stroke();
+                    ctx.restore();
+
+                    // Titik highlight Inbound
+                    ctx.beginPath();
+                    ctx.arc(x, getYBw(pt.inbound), 4, 0, Math.PI * 2);
+                    ctx.fillStyle = '#22d3ee';
+                    ctx.fill();
+                }
+            }
+
+            // Mouse / Touch inspection pada grafik
+            function handleChartPointer(clientX) {
+                const rect = canvas.getBoundingClientRect();
+                const x = clientX - rect.left;
+                const padLeft = 48;
+                const padRight = 42;
+                const chartW = rect.width - padLeft - padRight;
+                const ratio = Math.max(0, Math.min(1, (x - padLeft) / chartW));
+                hoverIndex = Math.round(ratio * (state.telemetryHistory.length - 1));
+
+                const pt = state.telemetryHistory[hoverIndex];
+                if (pt) {
+                    document.getElementById('chart-hover-readout').innerHTML = `
+                        <span class="text-slate-300">[${pt.time}]</span> 
+                        IN: <strong class="text-cyan-400">${pt.inbound} Mbps</strong> • 
+                        OUT: <strong class="text-purple-400">${pt.outbound} Mbps</strong> • 
+                        RTT: <strong class="text-amber-400">${pt.latency} ms</strong>
+                    `;
+                }
+                drawTelemetryChart();
+            }
+
+            canvas.addEventListener('mousemove', (e) => handleChartPointer(e.clientX));
+            canvas.addEventListener('mouseleave', () => {
+                hoverIndex = -1;
+                document.getElementById('chart-hover-readout').textContent = 'Arahkan kursor pada grafik untuk inspeksi titik data';
+                drawTelemetryChart();
+            });
+            canvas.addEventListener('touchmove', (e) => {
+                if (e.touches.length > 0) handleChartPointer(e.touches[0].clientX);
+            }, { passive: true });
+
+            // =================================================================
+            // 7. SIMULASI DATA REAL-TIME & SERANGAN ANOMALI
+            // =================================================================
+            function updateDashboardTick() {
+                const now = new Date();
+                document.getElementById('live-clock').textContent = formatTimeFull(now) + ' WIB';
+
+                if (!state.isStreaming) return;
+
+                // Hitung data telemetri baru
+                let inMbps, outMbps, latency, jitter, pktLoss;
+                if (state.isUnderAttack) {
+                    inMbps = Math.round(7400 + Math.random() * 1650);
+                    outMbps = Math.round(2100 + Math.random() * 600);
+                    latency = Number((84 + Math.random() * 48).toFixed(1));
+                    jitter = Number((18.5 + Math.random() * 9).toFixed(1));
+                    pktLoss = (2.4 + Math.random() * 1.8).toFixed(2) + '%';
+                } else {
+                    inMbps = Math.round(2200 + Math.random() * 480);
+                    outMbps = Math.round(1300 + Math.random() * 320);
+                    latency = Number((12.4 + Math.random() * 4.2).toFixed(1));
+                    jitter = Number((1.1 + Math.random() * 0.8).toFixed(1));
+                    pktLoss = '0.00%';
+                }
+
+                // Update array grafik
+                state.telemetryHistory.push({
+                    time: formatTimeShort(now),
+                    inbound: inMbps,
+                    outbound: outMbps,
+                    latency: latency,
+                    anomaly: state.isUnderAttack
+                });
+                if (state.telemetryHistory.length > 60) {
+                    state.telemetryHistory.shift();
+                }
+
+                // Update KPI Cards
+                const totalGbps = ((inMbps + outMbps) / 1000).toFixed(2);
+                const capPercent = Math.min(99, Math.round(((inMbps + outMbps) / 10000) * 100));
+
+                document.getElementById('kpi-latency').innerHTML = `${latency} <span class="text-base font-normal text-slate-400">ms</span>`;
+                document.getElementById('kpi-jitter').textContent = `${jitter} ms`;
+                document.getElementById('kpi-pktloss').textContent = pktLoss;
+                document.getElementById('kpi-pktloss').className = state.isUnderAttack ? 'text-rose-400 font-bold' : 'text-emerald-400';
+
+                document.getElementById('kpi-bandwidth').innerHTML = `${totalGbps} <span class="text-base font-normal text-slate-400">Gbps</span>`;
+                document.getElementById('kpi-bw-percent').textContent = `${capPercent}% Kapasitas`;
+                document.getElementById('kpi-bw-bar').style.width = `${capPercent}%`;
+                document.getElementById('kpi-in-mbps').textContent = `${inMbps.toLocaleString('id-ID')} Mbps`;
+                document.getElementById('kpi-out-mbps').textContent = `${outMbps.toLocaleString('id-ID')} Mbps`;
+
+                // Fluktuasi halus CPU/RAM pada 2 server acak
+                for (let k = 0; k < 2; k++) {
+                    const idx = Math.floor(Math.random() * state.servers.length);
+                    const srv = state.servers[idx];
+                    if (srv.status !== 'ISOLATED') {
+                        const spike = state.isUnderAttack && srv.cluster === 'DMZ-Firewall' ? 35 : 0;
+                        srv.cpu = Math.max(8, Math.min(98, srv.cpu + Math.floor(Math.random() * 7 - 3) + (spike > 0 ? 12 : 0)));
+                        if (!state.isUnderAttack && srv.cluster === 'DMZ-Firewall' && srv.cpu > 55) {
+                            srv.cpu -= 10;
+                        }
+                    }
+                }
+                renderServerTable();
+
+                // Tambah Log Firewall secara berkala
+                if (state.isUnderAttack || Math.random() < 0.45) {
+                    const attackPool = [
+                        { severity: 'CRITICAL', srcIp: '194.26.135.' + Math.floor(Math.random() * 250 + 1), country: 'RU', port: '80/TCP', rule: 'DDOS-901', threat: 'DDoS SYN Flood Burst', action: 'DROPPED' },
+                        { severity: 'CRITICAL', srcIp: '45.134.26.' + Math.floor(Math.random() * 250 + 1), country: 'CN', port: '443/TCP', rule: 'IPS-992', threat: 'HTTP/2 Rapid Reset', action: 'BLOCKED' },
+                        { severity: 'HIGH', srcIp: '185.220.101.' + Math.floor(Math.random() * 250 + 1), country: 'NL', port: '22/TCP', rule: 'IPS-2041', threat: 'Distributed SSH Brute', action: 'BLOCKED' }
+                    ];
+                    const chosen = state.isUnderAttack
+                        ? attackPool[Math.floor(Math.random() * attackPool.length)]
+                        : sampleThreats[Math.floor(Math.random() * sampleThreats.length)];
+
+                    state.firewallLogs.unshift({
+                        id: 'log-' + Math.random().toString(36).substring(2, 9),
+                        time: formatTimeFull(now),
+                        ...chosen,
+                        isNew: true
+                    });
+                    if (state.firewallLogs.length > 60) state.firewallLogs.pop();
+
+                    if (chosen.action === 'BLOCKED' || chosen.action === 'DROPPED') {
+                        state.blockedCount += state.isUnderAttack ? Math.floor(Math.random() * 18 + 5) : 1;
+                        document.getElementById('kpi-blocked-count').textContent = state.blockedCount.toLocaleString('id-ID');
+                    }
+                    renderFirewallLogs();
+                }
+
+                drawTelemetryChart();
+            }
+
+            // =================================================================
+            // 8. MODE SIMULASI SERANGAN & MITIGASI
+            // =================================================================
+            function setAttackState(active) {
+                state.isUnderAttack = active;
+
+                const globalBadge = document.getElementById('global-status-badge');
+                const globalPing = document.getElementById('global-status-ping');
+                const globalDot = document.getElementById('global-status-dot');
+                const globalText = document.getElementById('global-status-text');
+                const banner = document.getElementById('attack-alert-banner');
+                const simBtnText = document.getElementById('simulate-btn-text');
+
+                const threatScoreEl = document.getElementById('kpi-threat-score');
+                const threatLevelEl = document.getElementById('kpi-threat-level');
+                const activeAlertsEl = document.getElementById('kpi-active-alerts');
+                const aiDevVal = document.getElementById('ai-deviation-value');
+                const aiDevBar = document.getElementById('ai-deviation-bar');
+                const latBadge = document.getElementById('kpi-latency-badge');
+                const bwBar = document.getElementById('kpi-bw-bar');
+
+                if (active) {
+                    // Header Status -> CRITICAL
+                    globalBadge.className = 'flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-rose-500/15 border border-rose-500/50 text-rose-400 glow-crimson transition-all duration-300';
+                    globalPing.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75';
+                    globalDot.className = 'relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500';
+                    globalText.textContent = 'CRITICAL // INTRUSION ALERT';
+
+                    banner.classList.remove('hidden');
+                    simBtnText.textContent = 'Hentikan Simulasi';
+
+                    // KPI Updates
+                    threatScoreEl.innerHTML = '89<span class="text-base font-normal text-slate-400">/100</span>';
+                    threatScoreEl.className = 'text-2xl sm:text-3xl font-extrabold font-mono text-rose-400';
+                    threatLevelEl.textContent = 'KRITIS';
+                    threatLevelEl.className = 'text-xs font-mono font-semibold text-rose-300 bg-rose-500/20 border border-rose-500/40 px-2 py-0.5 rounded-lg animate-pulse';
+                    activeAlertsEl.textContent = '14';
+
+                    latBadge.textContent = 'Degraded Spike';
+                    latBadge.className = 'text-xs font-mono font-semibold text-rose-300 bg-rose-500/20 border border-rose-500/30 px-2 py-0.5 rounded-lg';
+                    bwBar.className = 'bg-gradient-to-r from-amber-500 to-rose-500 h-full rounded-full transition-all duration-500';
+
+                    // AI Anomaly Panel
+                    aiDevVal.textContent = '+318% ANOMALI';
+                    aiDevVal.className = 'font-mono font-bold text-rose-400 animate-pulse';
+                    aiDevBar.style.width = '92%';
+
+                    document.getElementById('vector-ddos').className = 'p-2.5 rounded-xl bg-rose-950/50 border border-rose-500/50 flex items-center justify-between transition';
+                    document.getElementById('dot-ddos').className = 'w-2 h-2 rounded-full bg-rose-500 animate-ping';
+                    document.getElementById('badge-ddos').className = 'text-[11px] font-mono px-2 py-0.5 rounded bg-rose-600 text-white font-bold';
+                    document.getElementById('badge-ddos').textContent = '94.8% AKTIF';
+
+                    showToast('Peringatan Keamanan Kritis!', 'Lonjakan SYN Flood & Brute Force terdeteksi pada cluster DMZ-Firewall.', 'danger');
+                } else {
+                    // Header Status -> OPERATIONAL
+                    globalBadge.className = 'flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 transition-all duration-300';
+                    globalPing.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75';
+                    globalDot.className = 'relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500';
+                    globalText.textContent = 'OPERATIONAL // NORMAL';
+
+                    banner.classList.add('hidden');
+                    simBtnText.textContent = 'Simulasikan Serangan';
+
+                    // KPI Reset
+                    threatScoreEl.innerHTML = '18<span class="text-base font-normal text-slate-400">/100</span>';
+                    threatScoreEl.className = 'text-2xl sm:text-3xl font-extrabold font-mono text-emerald-400';
+                    threatLevelEl.textContent = 'RENDAH';
+                    threatLevelEl.className = 'text-xs font-mono font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg';
+                    activeAlertsEl.textContent = '2';
+
+                    latBadge.textContent = 'Optimal';
+                    latBadge.className = 'text-xs font-mono font-semibold text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-lg';
+                    bwBar.className = 'bg-gradient-to-r from-cyan-400 to-blue-500 h-full rounded-full transition-all duration-500';
+
+                    // AI Anomaly Reset
+                    aiDevVal.textContent = '+4.2% Normal';
+                    aiDevVal.className = 'font-mono font-bold text-cyan-400';
+                    aiDevBar.style.width = '18%';
+
+                    document.getElementById('vector-ddos').className = 'p-2.5 rounded-xl bg-[#090d16]/90 border border-slate-800 flex items-center justify-between transition';
+                    document.getElementById('dot-ddos').className = 'w-2 h-2 rounded-full bg-emerald-400';
+                    document.getElementById('badge-ddos').className = 'text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300';
+                    document.getElementById('badge-ddos').textContent = '0.2% Risk';
+                }
+
+                updateDashboardTick();
+            }
+
+            // =================================================================
+            // 9. MODAL INSPEKSI SERVER
+            // =================================================================
+            function openServerModal(serverId) {
+                const srv = state.servers.find(s => s.id === serverId);
+                if (!srv) return;
+                state.selectedServerId = serverId;
+
+                const modal = document.getElementById('server-detail-modal');
+                const osIconEl = document.getElementById('modal-os-icon');
+                osIconEl.innerHTML = srv.os === 'Linux'
+                    ? '<i class="fa-brands fa-linux text-amber-400 text-xl"></i>'
+                    : '<i class="fa-brands fa-windows text-cyan-400 text-xl"></i>';
+
+                document.getElementById('modal-hostname').textContent = srv.hostname;
+                document.getElementById('modal-os-subtitle').textContent = `${srv.distro} • ${srv.ip} • ${srv.cluster}`;
+                document.getElementById('modal-uptime').textContent = srv.uptime;
+                document.getElementById('modal-agent').textContent = srv.integration;
+                document.getElementById('modal-cpuram').textContent = `${srv.cpu}% / ${srv.ram}%`;
+                document.getElementById('modal-kernel').textContent = srv.kernel;
+
+                const badge = document.getElementById('modal-status-badge');
+                if (srv.status === 'ISOLATED') {
+                    badge.textContent = 'ISOLATED';
+                    badge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40';
+                } else {
+                    badge.textContent = srv.status;
+                    badge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400';
+                }
+
+                // Services list
+                const servicesHtml = srv.services.map(svc => `
+                    <div class="p-2.5 rounded-xl bg-[#090d16] border border-slate-800 flex items-center justify-between">
+                        <div>
+                            <p class="text-slate-200 font-semibold">${svc.name}</p>
+                            <p class="text-[10px] text-slate-500">PID: ${svc.pid}</p>
+                        </div>
+                        <span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">${svc.status}</span>
+                    </div>
+                `).join('');
+                document.getElementById('modal-services-list').innerHTML = servicesHtml;
+
+                // Reset console output
+                document.getElementById('modal-console-output').innerHTML = `
+                    <div class="text-slate-500">[TELEMETRY] Terhubung ke ${srv.hostname} (${srv.ip}) melalui ${srv.integration}.</div>
+                `;
+
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+
+            function appendModalConsole(text, colorClass = 'text-cyan-300') {
+                const box = document.getElementById('modal-console-output');
+                const line = document.createElement('div');
+                line.className = colorClass;
+                line.textContent = `[${formatTimeFull(new Date())}] ${text}`;
+                box.appendChild(line);
+                box.scrollTop = box.scrollHeight;
+            }
+
+            // =================================================================
+            // 10. EVENT LISTENERS & INTERAKSI UI
+            // =================================================================
+            // Toggle Live Stream
+            document.getElementById('btn-toggle-stream').addEventListener('click', () => {
+                state.isStreaming = !state.isStreaming;
+                const icon = document.getElementById('stream-icon');
+                const label = document.getElementById('stream-label');
+                if (state.isStreaming) {
+                    icon.className = 'fa-solid fa-pause text-cyan-400';
+                    label.textContent = 'Live Stream: ON';
+                    showToast('Live Stream Aktif', 'Pembaruan metrik real-time per detik dilanjutkan.', 'info');
+                } else {
+                    icon.className = 'fa-solid fa-play text-amber-400';
+                    label.textContent = 'Live Stream: PAUSED';
+                    showToast('Live Stream Dijeda', 'Grafik dan log dibekukan untuk analisis manual.', 'warning');
+                }
+            });
+
+            // Simulasi Serangan Button
+            document.getElementById('btn-simulate-attack').addEventListener('click', () => {
+                setAttackState(!state.isUnderAttack);
+            });
+
+            // Mitigasi Serangan Button di Banner
+            document.getElementById('btn-mitigate-attack').addEventListener('click', () => {
+                setAttackState(false);
+                state.blockedCount += 450;
+                document.getElementById('kpi-blocked-count').textContent = state.blockedCount.toLocaleString('id-ID');
+                showToast('Mitigasi BGP Scrubbing Sukses', 'Trafik anomali dialihkan ke Scrubbing Center. Jaringan kembali stabil.', 'success');
+            });
+
+            // Cluster Filter
+            document.getElementById('cluster-filter').addEventListener('change', (e) => {
+                state.selectedCluster = e.target.value;
+                renderServerTable();
+                const onlineCount = state.servers.filter(s => (state.selectedCluster === 'ALL' || s.cluster === state.selectedCluster) && s.status !== 'ISOLATED').length;
+                const totalCount = state.servers.filter(s => state.selectedCluster === 'ALL' || s.cluster === state.selectedCluster).length;
+                document.getElementById('kpi-nodes-online').textContent = `${onlineCount}/${totalCount} Online`;
+            });
+
+            // Time Range Buttons (1m, 15m, 1j)
+            document.querySelectorAll('.time-range-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.time-range-btn').forEach(b => {
+                        b.className = 'time-range-btn px-2.5 py-1 rounded-lg text-xs font-mono font-medium text-slate-400 hover:text-slate-200 transition';
+                    });
+                    btn.className = 'time-range-btn px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition';
+                    state.timeRange = btn.getAttribute('data-range');
+                    drawTelemetryChart();
+                });
+            });
+
+            // OS Filter Buttons
+            document.querySelectorAll('.os-filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.os-filter-btn').forEach(b => {
+                        b.className = 'os-filter-btn px-2.5 py-1 rounded-lg font-medium text-slate-400 hover:text-white transition';
+                    });
+                    btn.className = 'os-filter-btn px-2.5 py-1 rounded-lg font-semibold bg-slate-800 text-white transition';
+                    state.selectedOS = btn.getAttribute('data-os');
+                    renderServerTable();
+                });
+            });
+
+            // Server Search Input
+            document.getElementById('server-search-input').addEventListener('input', (e) => {
+                state.searchQuery = e.target.value;
+                renderServerTable();
+            });
+
+            // Firewall Log Filters
+            document.getElementById('log-severity-filter').addEventListener('change', (e) => {
+                state.logSeverityFilter = e.target.value;
+                renderFirewallLogs();
+            });
+            document.getElementById('log-action-filter').addEventListener('change', (e) => {
+                state.logActionFilter = e.target.value;
+                renderFirewallLogs();
+            });
+
+            // Agent Config Tabs (Linux, Windows, SNMPv3)
+            document.querySelectorAll('.agent-tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.agent-tab-btn').forEach(b => {
+                        b.className = 'agent-tab-btn flex-1 py-1.5 px-2 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 transition flex items-center justify-center gap-1.5';
+                    });
+                    btn.className = 'agent-tab-btn flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold bg-slate-800 text-cyan-300 transition flex items-center justify-center gap-1.5';
+                    const tab = btn.getAttribute('data-agent-tab');
+                    state.activeAgentTab = tab;
+                    document.getElementById('agent-snippet-title').textContent = agentSnippets[tab].title;
+                    document.getElementById('agent-snippet-code').textContent = agentSnippets[tab].code;
+                });
+            });
+
+            // Copy Snippet to Clipboard (Menggunakan execCommand sesuai mandat iframe)
+            document.getElementById('btn-copy-snippet').addEventListener('click', () => {
+                const codeText = document.getElementById('agent-snippet-code').textContent;
+                const tempInput = document.createElement('textarea');
+                tempInput.value = codeText;
+                tempInput.style.position = 'fixed';
+                tempInput.style.opacity = '0';
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                try {
+                    document.execCommand('copy');
+                    showToast('Perintah Disalin', 'Konfigurasi agen berhasil disalin ke clipboard.', 'success');
+                } catch (err) {
+                    showToast('Gagal Menyalin', 'Silakan salin teks secara manual.', 'warning');
+                }
+                document.body.removeChild(tempInput);
+            });
+
+            // Uji SNMP Walk Button
+            document.getElementById('btn-test-snmp').addEventListener('click', () => {
+                showToast('SNMPv3 Walk Berhasil', '10/10 Node merespons OID sysUpTime & hrProcessorLoad dalam 11ms.', 'success');
+            });
+
+            // Modal Actions
+            document.getElementById('btn-close-modal').addEventListener('click', () => {
+                const modal = document.getElementById('server-detail-modal');
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            });
+
+            document.getElementById('server-detail-modal').addEventListener('click', (e) => {
+                if (e.target.id === 'server-detail-modal') {
+                    e.target.classList.add('hidden');
+                    e.target.classList.remove('flex');
+                }
+            });
+
+            document.getElementById('btn-modal-ping').addEventListener('click', () => {
+                const srv = state.servers.find(s => s.id === state.selectedServerId);
+                if (!srv) return;
+                const rtt = (Math.random() * 6 + 2.1).toFixed(2);
+                appendModalConsole(`PING ${srv.ip} (${srv.hostname}): 64 bytes icmp_seq=1 ttl=63 time=${rtt} ms (0% loss)`, 'text-emerald-400');
+            });
+
+            document.getElementById('btn-modal-restart-agent').addEventListener('click', () => {
+                const srv = state.servers.find(s => s.id === state.selectedServerId);
+                if (!srv) return;
+                appendModalConsole(`Mengirim sinyal restart ke daemon telemetri pada ${srv.hostname}...`, 'text-amber-300');
+                setTimeout(() => {
+                    appendModalConsole(`Agent berhasil dimulai ulang. Heartbeat SNMP/gRPC tersinkronisasi.`, 'text-emerald-400');
+                }, 600);
+            });
+
+            document.getElementById('btn-modal-isolate').addEventListener('click', () => {
+                const srv = state.servers.find(s => s.id === state.selectedServerId);
+                if (!srv) return;
+                srv.status = srv.status === 'ISOLATED' ? 'ONLINE' : 'ISOLATED';
+                renderServerTable();
+                openServerModal(srv.id);
+                if (srv.status === 'ISOLATED') {
+                    appendModalConsole(`ALERT: Host ${srv.hostname} dikarantina! Semua port non-manajemen diblokir.`, 'text-rose-400');
+                    showToast('Host Diisolasi', `${srv.hostname} (${srv.ip}) masuk mode karantina SOC.`, 'danger');
+                } else {
+                    appendModalConsole(`Karantina dicabut. Host ${srv.hostname} kembali beroperasi normal.`, 'text-emerald-400');
+                    showToast('Karantina Dicabut', `${srv.hostname} kembali online.`, 'success');
+                }
+            });
+
+            // =================================================================
+            // 11. STARTUP PADA WINDOW LOAD
+            // =================================================================
+            window.addEventListener('resize', resizeCanvas);
+
+            window.onload = function () {
+                initTelemetryData();
+                initFirewallLogs();
+                renderServerTable();
+                renderFirewallLogs();
+                resizeCanvas();
+                updateDashboardTick();
+                setInterval(updateDashboardTick, 1000);
+            };
+        })();
+    </script>
+</body>
+</html>
